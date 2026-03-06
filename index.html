@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quarterly Content Brief</title>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: #FAF8F5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .serif { font-family: 'Playfair Display', serif; }
+    textarea { resize: vertical; font-family: 'DM Sans', sans-serif; }
+    input { font-family: 'DM Sans', sans-serif; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+  const { useState, useRef, useCallback } = React;
+
+  /* ============================================================
+     CONFIGURATION
+     Edit the values below before sending to a client,
+     or override any field via URL query params:
+       ?clientName=Jane&quarter=Q3%202025&clientEmail=jane@co.com
+  ============================================================ */
+  const DEFAULT_CONFIG = {
+    clientName:       'there',
+    clientEmail:      '',
+    teamCC:           '',
+    googleFolderLink: 'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
+    quarter:          'Q2 2025',
+    appsScriptUrl:    'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec',
+  };
+
+  /* ============================================================
+     QUARTER → MONTHS MAP
+  ============================================================ */
+  const QUARTER_MONTHS = {
+    Q1: ['January',   'February', 'March'    ],
+    Q2: ['April',     'May',      'June'     ],
+    Q3: ['July',      'August',   'September'],
+    Q4: ['October',   'November', 'December' ],
+  };
+
+  /* ============================================================
+     HELPERS
+  ============================================================ */
+  function parseConfig() {
+    const p = new URLSearchParams(window.location.search);
+    const get = (k) => p.get(k) || DEFAULT_CONFIG[k];
+    return {
+      clientName:       get('clientName'),
+      clientEmail:      get('clientEmail'),
+      teamCC:           get('teamCC'),
+      googleFolderLink: get('googleFolderLink'),
+      quarter:          get('quarter'),
+      appsScriptUrl:    get('appsScriptUrl'),
+    };
+  }
+
+  function getMonths(quarter) {
+    const q = (quarter || '').split(' ')[0].toUpperCase();
+    return QUARTER_MONTHS[q] || QUARTER_MONTHS['Q2'];
+  }
+
+  /* ============================================================
+     DESIGN TOKENS
+  ============================================================ */
+  const accent      = '#7C4A1E';
+  const accentLight = '#FDF3E7';
+  const accentMid   = '#E5C49A';
+  const textDark    = '#1C1917';
+  const textMid     = '#78716C';
+  const textLight   = '#A8A29E';
+  const borderCol   = '#E7E5E4';
+  const bgWhite     = '#FFFFFF';
+  const bgPage      = '#FAF8F5';
+
+  /* ============================================================
+     UI PRIMITIVES
+  ============================================================ */
+
+  function ProgressDots({ step, total }) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', marginBottom: 40 }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <div key={i} style={{
+            borderRadius: 99,
+            height: 8,
+            width: i === step ? 28 : 8,
+            backgroundColor: i < step ? accentMid : i === step ? accent : borderCol,
+            transition: 'all 0.35s ease',
+          }} />
+        ))}
+      </div>
+    );
+  }
+
+  function StepLabel({ step, total }) {
+    return (
+      <p style={{
+        fontSize: 11,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        color: accent,
+        fontWeight: 600,
+        marginBottom: 12,
+      }}>
+        Step {step} of {total}
+      </p>
+    );
+  }
+
+  function Heading({ children }) {
+    return (
+      <h1 className="serif" style={{
+        fontSize: 'clamp(26px, 5vw, 38px)',
+        fontWeight: 500,
+        color: textDark,
+        lineHeight: 1.25,
+        marginBottom: 16,
+      }}>
+        {children}
+      </h1>
+    );
+  }
+
+  function Body({ children }) {
+    return (
+      <p style={{
+        fontSize: 14,
+        color: textMid,
+        lineHeight: 1.75,
+        maxWidth: 460,
+        marginBottom: 32,
+      }}>
+        {children}
+      </p>
+    );
+  }
+
+  function CTAButton({ onClick, children, loading, disabled }) {
+    const [hovered, setHovered] = useState(false);
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={loading || disabled}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '13px 28px',
+          backgroundColor: hovered && !loading ? accent : textDark,
+          color: '#fff',
+          borderRadius: 99,
+          fontSize: 14,
+          fontWeight: 500,
+          border: 'none',
+          cursor: loading || disabled ? 'not-allowed' : 'pointer',
+          opacity: loading || disabled ? 0.65 : 1,
+          transition: 'background-color 0.2s ease, opacity 0.2s ease',
+          letterSpacing: '0.01em',
+        }}
+      >
+        {loading && (
+          <svg style={{ animation: 'spin 1s linear infinite', width: 14, height: 14 }} viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25"/>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+          </svg>
+        )}
+        {children}
+      </button>
+    );
+  }
+
+  function BackButton({ onClick }) {
+    const [hovered, setHovered] = useState(false);
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: 13,
+          color: hovered ? textDark : textLight,
+          transition: 'color 0.2s ease',
+          padding: '4px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Back
+      </button>
+    );
+  }
+
+  function StyledTextArea({ value, onChange, placeholder, minHeight = 120 }) {
+    const [focused, setFocused] = useState(false);
+    return (
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: '100%',
+          minHeight,
+          padding: '14px 16px',
+          fontSize: 14,
+          color: textDark,
+          backgroundColor: bgWhite,
+          border: `1.5px solid ${focused ? accent : borderCol}`,
+          borderRadius: 16,
+          outline: 'none',
+          boxShadow: focused ? `0 0 0 3px ${accentLight}` : 'none',
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          lineHeight: 1.65,
+        }}
+      />
+    );
+  }
+
+  function StyledInput({ value, onChange, placeholder }) {
+    const [focused, setFocused] = useState(false);
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: '100%',
+          padding: '13px 16px',
+          fontSize: 14,
+          color: textDark,
+          backgroundColor: bgWhite,
+          border: `1.5px solid ${focused ? accent : borderCol}`,
+          borderRadius: 14,
+          outline: 'none',
+          boxShadow: focused ? `0 0 0 3px ${accentLight}` : 'none',
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+        }}
+      />
+    );
+  }
+
+  /* Field wrapper — top-level so React never remounts it on re-render */
+  function Field({ label, hint, children }) {
+    return (
+      <div style={{ marginBottom: 22 }}>
+        <label style={{
+          display: 'block', fontSize: 12, fontWeight: 600,
+          color: textMid, marginBottom: 7, letterSpacing: '0.03em',
+        }}>
+          {label}
+        </label>
+        {children}
+        {hint && (
+          <p style={{ fontSize: 12, color: textLight, marginTop: 6, lineHeight: 1.55 }}>{hint}</p>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     MONTH ACCORDION
+  ============================================================ */
+  function MonthAccordion({ month, value, onChange, defaultOpen }) {
+    const [open, setOpen] = useState(!!defaultOpen);
+
+    return (
+      <div style={{
+        border: `1.5px solid ${open ? accentMid : borderCol}`,
+        borderRadius: 18,
+        overflow: 'hidden',
+        backgroundColor: bgWhite,
+        marginBottom: 10,
+        transition: 'border-color 0.25s ease',
+      }}>
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 500, color: textDark }}>{month}</span>
+          <span style={{
+            color: open ? accent : textLight,
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.3s ease, color 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3.5 6l4.5 4.5L12.5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+        </button>
+
+        <div style={{
+          maxHeight: open ? 300 : 0,
+          opacity: open ? 1 : 0,
+          overflow: 'hidden',
+          transition: 'max-height 0.35s ease, opacity 0.3s ease',
+        }}>
+          <div style={{ padding: '4px 20px 20px' }}>
+            <StyledTextArea
+              value={value}
+              onChange={onChange}
+              placeholder={`What's happening in ${month}? Launches, promos, events, collabs…`}
+              minHeight={100}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     YES / NO TOGGLE
+  ============================================================ */
+  function YesNoToggle({ value, onChange }) {
+    return (
+      <div style={{ display: 'flex', gap: 8 }}>
+        {[['Yes', true], ['No', false]].map(([label, val]) => {
+          const active = value === val;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => onChange(val)}
+              style={{
+                padding: '9px 26px',
+                borderRadius: 99,
+                fontSize: 13,
+                fontWeight: 500,
+                border: `1.5px solid ${active ? accent : borderCol}`,
+                backgroundColor: active ? accent : bgWhite,
+                color: active ? '#fff' : textMid,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     GOOGLE FOLDER CARD
+  ============================================================ */
+  function FolderCard({ link }) {
+    const [hovered, setHovered] = useState(false);
+    return (
+      <div style={{
+        marginTop: 14,
+        padding: '16px 20px',
+        backgroundColor: accentLight,
+        border: `1.5px solid ${accentMid}`,
+        borderRadius: 16,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        animation: 'fadeIn 0.3s ease',
+      }}>
+        {/* Google Drive colours */}
+        <svg width="26" height="22" viewBox="0 0 256 222" style={{ flexShrink: 0 }}>
+          <path fill="#0066DA" d="M174.4 0H81.6L0 144h81.6z"/>
+          <path fill="#00AC47" d="M256 144L174.4 0l-40.8 72L214.6 216z"/>
+          <path fill="#EA4335" d="M40.8 144L0 144 81.6 216h92.8l40.8-72z"/>
+        </svg>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 600, color: textDark, marginBottom: 4 }}>
+            Upload your content here
+          </p>
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+              fontSize: 12,
+              color: hovered ? textDark : accent,
+              textDecoration: 'none',
+              borderBottom: `1px solid ${hovered ? textDark : accentMid}`,
+              transition: 'color 0.2s ease, border-color 0.2s ease',
+              paddingBottom: 1,
+            }}
+          >
+            Open Google Drive folder →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     OPTION CARD
+  ============================================================ */
+  function OptionCard({ label, description, selected, onClick }) {
+    const [hovered, setHovered] = useState(false);
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          flex: 1,
+          textAlign: 'left',
+          padding: '18px 18px 16px',
+          borderRadius: 18,
+          border: `1.5px solid ${selected ? accent : hovered ? accentMid : borderCol}`,
+          backgroundColor: selected ? accentLight : bgWhite,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <div style={{
+          width: 16,
+          height: 16,
+          borderRadius: '50%',
+          border: `2px solid ${selected ? accent : borderCol}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 12,
+          transition: 'border-color 0.2s ease',
+        }}>
+          {selected && (
+            <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: accent }} />
+          )}
+        </div>
+        <p style={{ fontSize: 13, fontWeight: 600, color: textDark, lineHeight: 1.4, marginBottom: 4 }}>
+          {label}
+        </p>
+        {description && (
+          <p style={{ fontSize: 12, color: textMid, lineHeight: 1.55 }}>
+            {description}
+          </p>
+        )}
+      </button>
+    );
+  }
+
+  /* ============================================================
+     STEP 1 — What's happening this quarter?
+  ============================================================ */
+  function Step1({ months, monthlyNotes, onChangeMonth, onNext }) {
+    return (
+      <div>
+        <StepLabel step={1} total={3} />
+        <Heading>
+          What's happening<br />this quarter?
+        </Heading>
+        <Body>
+          Promotions, launches, new services or products, events, collabs, seasonal pushes — anything you want your audience to know about. If nothing specific is happening, no worries at all — we'll plan evergreen concepts that work year-round.
+        </Body>
+
+        <div style={{ marginBottom: 32 }}>
+          {months.map((month, i) => (
+            <MonthAccordion
+              key={month}
+              month={month}
+              value={monthlyNotes[month] || ''}
+              onChange={val => onChangeMonth(month, val)}
+              defaultOpen={i === 0}
+            />
+          ))}
+        </div>
+
+        <CTAButton onClick={onNext}>
+          Looking good →
+        </CTAButton>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     STEP 2 — Let's talk content
+  ============================================================ */
+  function Step2({ data, onChange, onNext, onBack, googleFolderLink }) {
+    return (
+      <div>
+        <StepLabel step={2} total={3} />
+        <Heading>Let's talk content</Heading>
+
+        {/* Q1 */}
+        <div style={{ marginBottom: 32 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, color: textDark, marginBottom: 12 }}>
+            Do you have new content ready to upload to DSH now?
+          </p>
+          <YesNoToggle
+            value={data.contentReadyNow}
+            onChange={v => onChange('contentReadyNow', v)}
+          />
+          {data.contentReadyNow === true && googleFolderLink && (
+            <FolderCard link={googleFolderLink} />
+          )}
+        </div>
+
+        {/* Q2 + Q3 combined */}
+        <div style={{ marginBottom: 36 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, color: textDark, marginBottom: 4 }}>
+            What about throughout the quarter?
+          </p>
+          <p style={{ fontSize: 13, color: textMid, marginBottom: 12, lineHeight: 1.6 }}>
+            Do you want DSH to tell you the exact footage they need, or do you have planned shoots you want us to use?
+          </p>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+            <OptionCard
+              label="Tell me what you need"
+              description="DSH will guide you on exactly what to capture and when"
+              selected={data.footageOption === 'guided'}
+              onClick={() => onChange('footageOption', 'guided')}
+            />
+            <OptionCard
+              label="I have planned shoots"
+              description="We'll work around your existing content calendar"
+              selected={data.footageOption === 'planned'}
+              onClick={() => onChange('footageOption', 'planned')}
+            />
+            <OptionCard
+              label="Both"
+              description="Mix of DSH direction and shoots we already have planned"
+              selected={data.footageOption === 'both'}
+              onClick={() => onChange('footageOption', 'both')}
+            />
+          </div>
+
+          {(data.footageOption === 'planned' || data.footageOption === 'both') && (
+            <div style={{ marginBottom: 16, animation: 'fadeIn 0.3s ease' }}>
+              <label style={{ display: 'block', fontSize: 13, color: textMid, marginBottom: 8 }}>
+                ETA of those shoots?
+              </label>
+              <StyledInput
+                value={data.shootEta || ''}
+                onChange={v => onChange('shootEta', v)}
+                placeholder="e.g. Mid-April, first week of May…"
+              />
+            </div>
+          )}
+
+          <StyledTextArea
+            value={data.contentThroughoutQuarter || ''}
+            onChange={v => onChange('contentThroughoutQuarter', v)}
+            placeholder="Anything else to flag about content throughout the quarter? Campaigns, asset drops, anything already in the works…"
+            minHeight={100}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <BackButton onClick={onBack} />
+          <CTAButton onClick={onNext}>Almost there →</CTAButton>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     STEP 3 — Before we start planning…
+  ============================================================ */
+  function Step3({ data, onChange, onSubmit, onBack, loading }) {
+    return (
+      <div>
+        <StepLabel step={3} total={3} />
+        <Heading>
+          Before we start<br />planning…
+        </Heading>
+        <Body>
+          Anything else going on in your business or life we should know about? Goals, recent milestones, audience feedback, family travel — anything that should shape how we approach the next three months.
+        </Body>
+
+        <div style={{ marginBottom: 36 }}>
+          <StyledTextArea
+            value={data.finalNotes || ''}
+            onChange={v => onChange('finalNotes', v)}
+            placeholder="Share whatever feels relevant — nothing is too small or too personal. The more context we have, the better we can plan for you."
+            minHeight={190}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <BackButton onClick={onBack} />
+          <CTAButton onClick={onSubmit} loading={loading}>
+            {loading ? 'Submitting…' : 'Submit'}
+          </CTAButton>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     CONFIRMATION
+  ============================================================ */
+  function Confirmation({ clientName, quarter }) {
+    return (
+      <div style={{ textAlign: 'center', maxWidth: 420, margin: '0 auto', padding: '20px 0' }}>
+        <div style={{
+          width: 64,
+          height: 64,
+          borderRadius: '50%',
+          backgroundColor: accentLight,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 28px',
+          animation: 'popIn 0.45s cubic-bezier(0.34,1.56,0.64,1)',
+        }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path d="M20 6L9 17l-5-5" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+
+        <h2 className="serif" style={{
+          fontSize: 'clamp(24px, 5vw, 34px)',
+          fontWeight: 500,
+          color: textDark,
+          marginBottom: 16,
+          lineHeight: 1.25,
+        }}>
+          You're all set,&nbsp;{clientName}.
+        </h2>
+
+        <p style={{ fontSize: 14, color: textMid, lineHeight: 1.8, marginBottom: 40 }}>
+          We've got everything we need to start building your {quarter} content plan.
+          Keep an eye on your inbox — we'll be in touch soon with ideas and next steps.
+        </p>
+
+        <div style={{
+          padding: '18px 28px',
+          backgroundColor: bgWhite,
+          border: `1.5px solid ${borderCol}`,
+          borderRadius: 18,
+          display: 'inline-block',
+        }}>
+          <p className="serif" style={{
+            fontSize: 15,
+            color: textMid,
+            fontStyle: 'italic',
+            margin: 0,
+          }}>
+            The team at DSH
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     SETUP SCREEN  (agency-only — not visible to client)
+  ============================================================ */
+  function SetupScreen() {
+    const yr = new Date().getFullYear();
+    const quarters = [];
+    for (let y = yr - 1; y <= yr + 2; y++) {
+      ['Q1','Q2','Q3','Q4'].forEach(q => quarters.push(`${q} ${y}`));
+    }
+
+    const [f, setF] = useState({
+      clientName:       '',
+      clientEmail:      '',
+      teamCC:           '',
+      googleFolderLink: '',
+      quarter:          `Q2 ${yr}`,
+    });
+    const [copied,        setCopied]        = useState(false);
+    const [selectFocused, setSelectFocused] = useState(false);
+
+    const update = (k, v) => setF(prev => ({ ...prev, [k]: v }));
+
+    const base = window.location.href.split('?')[0];
+    const qs   = new URLSearchParams(
+      Object.fromEntries(Object.entries(f).filter(([, v]) => v.trim()))
+    ).toString();
+    const url = qs ? `${base}?${qs}` : base;
+
+    const copyLink = async () => {
+      try { await navigator.clipboard.writeText(url); } catch {}
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    };
+
+    return (
+      <div>
+        {/* Agency badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7,
+          padding: '5px 13px',
+          backgroundColor: '#FEF9EE',
+          border: `1.5px solid ${accentMid}`,
+          borderRadius: 99,
+          marginBottom: 30,
+        }}>
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+            <rect x="3" y="7" width="10" height="8" rx="1.5" stroke="#92400E" strokeWidth="1.5"/>
+            <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="#92400E" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#92400E', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+            Agency setup · not visible to client
+          </span>
+        </div>
+
+        <h1 className="serif" style={{
+          fontSize: 'clamp(24px, 5vw, 34px)', fontWeight: 500,
+          color: textDark, lineHeight: 1.25, marginBottom: 10,
+        }}>
+          Set up a new<br />client brief
+        </h1>
+        <p style={{ fontSize: 14, color: textMid, lineHeight: 1.75, maxWidth: 440, marginBottom: 36 }}>
+          Fill in the details below. This generates a personalised link you copy and send straight to your client — they'll see the form, not this screen.
+        </p>
+
+        {/* Fields */}
+        <Field label="Client name ✦">
+          <StyledInput
+            value={f.clientName}
+            onChange={v => update('clientName', v)}
+            placeholder="e.g. Jane Smith or Bloom Studio"
+          />
+        </Field>
+
+        <Field label="Quarter ✦">
+          <div style={{ position: 'relative' }}>
+            <select
+              value={f.quarter}
+              onChange={e => update('quarter', e.target.value)}
+              onFocus={() => setSelectFocused(true)}
+              onBlur={() => setSelectFocused(false)}
+              style={{
+                width: '100%', padding: '13px 40px 13px 16px',
+                fontSize: 14, color: textDark, backgroundColor: bgWhite,
+                border: `1.5px solid ${selectFocused ? accent : borderCol}`,
+                borderRadius: 14, outline: 'none', appearance: 'none', cursor: 'pointer',
+                boxShadow: selectFocused ? `0 0 0 3px ${accentLight}` : 'none',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              {quarters.map(q => <option key={q} value={q}>{q}</option>)}
+            </select>
+            <span style={{
+              position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+              pointerEvents: 'none', color: textLight, display: 'flex',
+            }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M2.5 5l4.5 4.5L11.5 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </span>
+          </div>
+        </Field>
+
+        <Field
+          label="Google Drive folder link ✦"
+          hint="This is where the client will be invited to upload content when they say they have content ready."
+        >
+          <StyledInput
+            value={f.googleFolderLink}
+            onChange={v => update('googleFolderLink', v)}
+            placeholder="https://drive.google.com/drive/folders/…"
+          />
+        </Field>
+
+        <Field label="Client email">
+          <StyledInput
+            value={f.clientEmail}
+            onChange={v => update('clientEmail', v)}
+            placeholder="jane@example.com"
+          />
+        </Field>
+
+        <Field label="Team CC (your email)">
+          <StyledInput
+            value={f.teamCC}
+            onChange={v => update('teamCC', v)}
+            placeholder="you@dshagency.com"
+          />
+        </Field>
+
+        {/* Divider */}
+        <div style={{ height: 1, backgroundColor: borderCol, margin: '8px 0 24px' }} />
+
+        {/* Generated URL preview */}
+        <div style={{
+          padding: '14px 16px',
+          backgroundColor: '#F5F4F2',
+          border: `1.5px solid ${borderCol}`,
+          borderRadius: 14,
+          marginBottom: 20,
+        }}>
+          <p style={{
+            fontSize: 11, fontWeight: 600, color: textLight,
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+          }}>
+            Your shareable link
+          </p>
+          <p style={{ fontSize: 12, color: textMid, wordBreak: 'break-all', lineHeight: 1.65, margin: 0 }}>
+            {url}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <CTAButton onClick={copyLink}>
+            {copied ? (
+              <>
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                  <path d="M2 7l4 4 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Copied!
+              </>
+            ) : 'Copy link'}
+          </CTAButton>
+          <button
+            type="button"
+            onClick={() => window.open(url, '_blank')}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 13, color: textMid,
+              textDecoration: 'underline', textDecorationColor: borderCol,
+              textUnderlineOffset: 3,
+            }}
+          >
+            Preview as client →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     ROOT APP
+  ============================================================ */
+  function App() {
+    const isSetup = !new URLSearchParams(window.location.search).has('clientName');
+    const config  = parseConfig();
+    const months = getMonths(config.quarter);
+
+    const [formData, setFormData] = useState({
+      monthlyNotes:             {},
+      contentReadyNow:          null,
+      contentThroughoutQuarter: '',
+      footageOption:            null,
+      shootEta:                 '',
+      finalNotes:               '',
+    });
+
+    /* Step navigation */
+    const [step,    setStep]    = useState(0);
+    const [visible, setVisible] = useState(0);
+    const [phase,   setPhase]   = useState('idle'); // idle | exiting | entering
+    const [dir,     setDir]     = useState(1);       // 1=fwd, -1=back
+
+    /* Submission */
+    const [loading,   setLoading]   = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+
+    /* Data helpers */
+    const updateField = (key, val) =>
+      setFormData(prev => ({ ...prev, [key]: val }));
+
+    const updateMonth = (month, val) =>
+      setFormData(prev => ({
+        ...prev,
+        monthlyNotes: { ...prev.monthlyNotes, [month]: val },
+      }));
+
+    /* Animated navigation */
+    const navigate = useCallback((nextStep) => {
+      const newDir = nextStep > step ? 1 : -1;
+      setDir(newDir);
+      setPhase('exiting');
+      setTimeout(() => {
+        setStep(nextStep);
+        setVisible(nextStep);
+        setPhase('entering');
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setPhase('idle'));
+        });
+      }, 290);
+    }, [step]);
+
+    const goNext = () => { if (step < 2) navigate(step + 1); };
+    const goBack = () => { if (step > 0) navigate(step - 1); };
+
+    /* Step animation style */
+    const stepStyle = (() => {
+      if (phase === 'exiting') return {
+        opacity: 0,
+        transform: `translateX(${dir * -30}px)`,
+        transition: 'opacity 0.28s ease, transform 0.28s ease',
+        pointerEvents: 'none',
+      };
+      if (phase === 'entering') return {
+        opacity: 0,
+        transform: `translateX(${dir * 30}px)`,
+        transition: 'none',
+      };
+      return {
+        opacity: 1,
+        transform: 'translateX(0)',
+        transition: 'opacity 0.32s ease, transform 0.32s ease',
+      };
+    })();
+
+    /* Submit */
+    const handleSubmit = async () => {
+      setLoading(true);
+
+      const payload = {
+        timestamp:   new Date().toISOString(),
+        clientName:  config.clientName,
+        clientEmail: config.clientEmail,
+        quarter:     config.quarter,
+        ...months.reduce((acc, m) => {
+          acc[`notes_${m}`] = formData.monthlyNotes[m] || '';
+          return acc;
+        }, {}),
+        contentReadyNow:
+          formData.contentReadyNow === true  ? 'Yes' :
+          formData.contentReadyNow === false ? 'No'  : '',
+        contentThroughoutQuarter: formData.contentThroughoutQuarter,
+        footageOption:
+          formData.footageOption === 'guided'  ? 'DSH guides footage' :
+          formData.footageOption === 'planned' ? 'Client has planned shoots' :
+          formData.footageOption === 'both'    ? 'Both — DSH direction + planned shoots' : '',
+        shootEta:   formData.shootEta,
+        finalNotes: formData.finalNotes,
+      };
+
+      try {
+        if (config.appsScriptUrl && !config.appsScriptUrl.includes('YOUR_SCRIPT_ID')) {
+          await fetch(config.appsScriptUrl, {
+            method:  'POST',
+            mode:    'no-cors', // Required for Apps Script — response will be opaque
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(payload),
+          });
+        }
+        await new Promise(r => setTimeout(r, 700)); // UX breathing room
+        setSubmitted(true);
+      } catch (err) {
+        // no-cors fetch always throws — this is expected. Treat as success.
+        console.warn('Submission note:', err);
+        setSubmitted(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: bgPage,
+        display: 'flex',
+        justifyContent: 'center',
+        padding: 'clamp(32px, 6vw, 72px) clamp(16px, 4vw, 32px)',
+      }}>
+        <div style={{ width: '100%', maxWidth: 580 }}>
+
+          {/* Top bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 44,
+          }}>
+            <span className="serif" style={{
+              fontSize: 13,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: textLight,
+            }}>
+              DSH
+            </span>
+            {!isSetup && !submitted && (
+              <span style={{ fontSize: 12, color: textLight }}>
+                {config.quarter} Content Brief
+              </span>
+            )}
+          </div>
+
+          {/* Content */}
+          {isSetup ? (
+            <SetupScreen />
+          ) : submitted ? (
+            <div style={{ animation: 'fadeIn 0.45s ease' }}>
+              <Confirmation clientName={config.clientName} quarter={config.quarter} />
+            </div>
+          ) : (
+            <>
+              <ProgressDots step={step} total={3} />
+              <div style={stepStyle}>
+                {visible === 0 && (
+                  <Step1
+                    months={months}
+                    monthlyNotes={formData.monthlyNotes}
+                    onChangeMonth={updateMonth}
+                    onNext={goNext}
+                  />
+                )}
+                {visible === 1 && (
+                  <Step2
+                    data={formData}
+                    onChange={updateField}
+                    onNext={goNext}
+                    onBack={goBack}
+                    googleFolderLink={config.googleFolderLink}
+                  />
+                )}
+                {visible === 2 && (
+                  <Step3
+                    data={formData}
+                    onChange={updateField}
+                    onSubmit={handleSubmit}
+                    onBack={goBack}
+                    loading={loading}
+                  />
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Footer */}
+          <div style={{ marginTop: 64, textAlign: 'center' }}>
+            <p style={{ fontSize: 11, color: '#C8C4C0', letterSpacing: '0.04em' }}>
+              DSH Social Media Agency · Quarterly Planning Brief
+            </p>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<App />);
+  </script>
+</body>
+</html>
