@@ -504,16 +504,20 @@
   /* ============================================================
      STEP 1 — What's happening this quarter?
   ============================================================ */
-  function Step1({ months, monthlyNotes, onChangeMonth, onNext }) {
+  function Step1({ months, monthlyNotes, onChangeMonth, onNext, clientName }) {
     return (
       <div>
         <StepLabel step={1} total={3} />
         <Heading>
-          What's happening<br />this quarter?
+          Hey {clientName || 'there'},<br />let's get planning.
         </Heading>
         <Body>
           Promotions, launches, new services or products, events, collabs, seasonal pushes — anything you want your audience to know about. If nothing specific is happening, no worries at all — we'll plan evergreen concepts that work year-round.
         </Body>
+
+        <p style={{ fontSize: 13, fontWeight: 600, color: textDark, marginBottom: 12 }}>
+          What's happening this quarter?
+        </p>
 
         <div style={{ marginBottom: 32 }}>
           {months.map((month, i) => (
@@ -717,8 +721,6 @@
 
     const [f, setF] = useState({
       clientName:       '',
-      clientEmail:      '',
-      teamCC:           '',
       googleFolderLink: '',
       quarter:          `Q2 ${yr}`,
     });
@@ -816,22 +818,6 @@
             value={f.googleFolderLink}
             onChange={v => update('googleFolderLink', v)}
             placeholder="https://drive.google.com/drive/folders/…"
-          />
-        </Field>
-
-        <Field label="Client email">
-          <StyledInput
-            value={f.clientEmail}
-            onChange={v => update('clientEmail', v)}
-            placeholder="jane@example.com"
-          />
-        </Field>
-
-        <Field label="Team CC (your email)">
-          <StyledInput
-            value={f.teamCC}
-            onChange={v => update('teamCC', v)}
-            placeholder="you@dshagency.com"
           />
         </Field>
 
@@ -1055,6 +1041,7 @@
                     monthlyNotes={formData.monthlyNotes}
                     onChangeMonth={updateMonth}
                     onNext={goNext}
+                    clientName={config.clientName}
                   />
                 )}
                 {visible === 1 && (
