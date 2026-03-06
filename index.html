@@ -502,22 +502,37 @@
   }
 
   /* ============================================================
-     STEP 1 — What's happening this quarter?
+     WELCOME SCREEN — first thing the client sees
   ============================================================ */
-  function Step1({ months, monthlyNotes, onChangeMonth, onNext, clientName }) {
+  function WelcomeScreen({ clientName, onStart }) {
     return (
       <div>
-        <StepLabel step={1} total={3} />
         <Heading>
           Hey {clientName || 'there'},<br />let's get planning.
         </Heading>
         <Body>
-          Promotions, launches, new services or products, events, collabs, seasonal pushes — anything you want your audience to know about. If nothing specific is happening, no worries at all — we'll plan evergreen concepts that work year-round.
+          This is your chance to fill us in on everything coming up in your world — promos, launches, events, collabs, life stuff. The more context you give us, the better we can build a content plan that actually fits your quarter.
         </Body>
+        <CTAButton onClick={onStart}>
+          I'm ready, let's go →
+        </CTAButton>
+      </div>
+    );
+  }
 
-        <p style={{ fontSize: 13, fontWeight: 600, color: textDark, marginBottom: 12 }}>
-          What's happening this quarter?
-        </p>
+  /* ============================================================
+     STEP 1 — What's happening this quarter?
+  ============================================================ */
+  function Step1({ months, monthlyNotes, onChangeMonth, onNext }) {
+    return (
+      <div>
+        <StepLabel step={1} total={3} />
+        <Heading>
+          What's happening<br />this quarter?
+        </Heading>
+        <Body>
+          Promotions, launches, new services or products, events, collabs, seasonal pushes — anything you want your audience to know about. Details don't need to be finalised — just tell us what's on the horizon. (e.g. "We'll probably have a Memorial Day sale, dates TBC")
+        </Body>
 
         <div style={{ marginBottom: 32 }}>
           {months.map((month, i) => (
@@ -895,6 +910,19 @@
     const [phase,   setPhase]   = useState('idle'); // idle | exiting | entering
     const [dir,     setDir]     = useState(1);       // 1=fwd, -1=back
 
+    /* Welcome screen */
+    const [welcomed,       setWelcomed]       = useState(false);
+    const [welcomeExiting, setWelcomeExiting] = useState(false);
+
+    const startForm = useCallback(() => {
+      setWelcomeExiting(true);
+      setTimeout(() => {
+        setWelcomed(true);
+        setPhase('entering');
+        requestAnimationFrame(() => requestAnimationFrame(() => setPhase('idle')));
+      }, 290);
+    }, []);
+
     /* Submission */
     const [loading,   setLoading]   = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -1017,7 +1045,7 @@
             }}>
               DSH
             </span>
-            {!isSetup && !submitted && (
+            {!isSetup && !submitted && welcomed && (
               <span style={{ fontSize: 12, color: textLight }}>
                 {config.quarter} Content Brief
               </span>
@@ -1031,6 +1059,14 @@
             <div style={{ animation: 'fadeIn 0.45s ease' }}>
               <Confirmation clientName={config.clientName} quarter={config.quarter} />
             </div>
+          ) : !welcomed ? (
+            <div style={{
+              opacity: welcomeExiting ? 0 : 1,
+              transform: welcomeExiting ? 'translateX(-30px)' : 'translateX(0)',
+              transition: 'opacity 0.28s ease, transform 0.28s ease',
+            }}>
+              <WelcomeScreen clientName={config.clientName} onStart={startForm} />
+            </div>
           ) : (
             <>
               <ProgressDots step={step} total={3} />
@@ -1041,7 +1077,6 @@
                     monthlyNotes={formData.monthlyNotes}
                     onChangeMonth={updateMonth}
                     onNext={goNext}
-                    clientName={config.clientName}
                   />
                 )}
                 {visible === 1 && (
