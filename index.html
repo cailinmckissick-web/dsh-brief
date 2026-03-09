@@ -508,20 +508,22 @@
     return (
       <div>
         <h1 className="serif" style={{
-          fontSize: 'clamp(46px, 9vw, 80px)',
+          fontSize: 'clamp(52px, 10vw, 9999px)',
           fontWeight: 500,
           color: textDark,
           lineHeight: 1.08,
-          marginBottom: 28,
+          marginBottom: 36,
         }}>
           Hey {clientName || 'there'},<br />let's get planning.
         </h1>
-        <Body>
-          This is your chance to fill us in on everything coming up in your world — promos, launches, events, collabs, life stuff. The more context you give us, the better we can build a content plan that actually fits your quarter.
-        </Body>
-        <CTAButton onClick={onStart}>
-          I'm ready, let's go →
-        </CTAButton>
+        <div style={{ maxWidth: 540 }}>
+          <Body>
+            This is your chance to fill us in on everything coming up in your world — promos, launches, events, collabs, life stuff. The more context you give us, the better we can build a content plan that actually fits your quarter.
+          </Body>
+          <CTAButton onClick={onStart}>
+            I'm ready, let's go →
+          </CTAButton>
+        </div>
       </div>
     );
   }
@@ -1052,7 +1054,7 @@
         justifyContent: 'center',
         padding: 'clamp(32px, 6vw, 72px) clamp(16px, 4vw, 32px)',
       }}>
-        <div style={{ width: '100%', maxWidth: 660 }}>
+        <div style={{ width: '100%', maxWidth: (!isSetup && !submitted && !welcomed) ? 'min(1100px, 88vw)' : 660 }}>
 
           {/* Top bar */}
           <div style={{
