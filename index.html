@@ -12,19 +12,19 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;1,6..96,400;1,6..96,500&family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,500;0,6..12,600;1,6..12,400&display=swap" rel="stylesheet" />
 
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Nunito Sans', sans-serif;
       background-color: #FAF8F5;
       -webkit-font-smoothing: antialiased;
     }
-    .serif { font-family: 'Playfair Display', serif; }
-    textarea { resize: vertical; font-family: 'DM Sans', sans-serif; }
-    input { font-family: 'DM Sans', sans-serif; }
+    .serif { font-family: 'Bodoni Moda', serif; }
+    textarea { resize: vertical; font-family: 'Nunito Sans', sans-serif; }
+    input { font-family: 'Nunito Sans', sans-serif; }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
@@ -507,9 +507,15 @@
   function WelcomeScreen({ clientName, onStart }) {
     return (
       <div>
-        <Heading>
+        <h1 className="serif" style={{
+          fontSize: 'clamp(46px, 9vw, 80px)',
+          fontWeight: 500,
+          color: textDark,
+          lineHeight: 1.08,
+          marginBottom: 28,
+        }}>
           Hey {clientName || 'there'},<br />let's get planning.
-        </Heading>
+        </h1>
         <Body>
           This is your chance to fill us in on everything coming up in your world — promos, launches, events, collabs, life stuff. The more context you give us, the better we can build a content plan that actually fits your quarter.
         </Body>
@@ -523,7 +529,7 @@
   /* ============================================================
      STEP 1 — What's happening this quarter?
   ============================================================ */
-  function Step1({ months, monthlyNotes, onChangeMonth, onNext }) {
+  function Step1({ months, monthlyNotes, onChangeMonth, quarterThemes, onChangeThemes, onNext }) {
     return (
       <div>
         <StepLabel step={1} total={3} />
@@ -544,6 +550,22 @@
               defaultOpen={i === 0}
             />
           ))}
+        </div>
+
+        <div style={{ marginBottom: 32 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, color: textDark, marginBottom: 6 }}>
+            Any themes or focus areas for the quarter?
+          </p>
+          <p style={{ fontSize: 13, color: textMid, marginBottom: 12, lineHeight: 1.6 }}>
+            Think seasonal angles, recurring messages, or treatments/services you want front of mind.
+            (e.g. winter = hydration &amp; skin barrier, spring = glow-up &amp; renewal)
+          </p>
+          <StyledTextArea
+            value={quarterThemes}
+            onChange={onChangeThemes}
+            placeholder="e.g. Q2 vibe — spring refresh, new arrivals, post-winter skin reset…"
+            minHeight={90}
+          />
         </div>
 
         <CTAButton onClick={onNext}>
@@ -593,7 +615,7 @@
             />
             <OptionCard
               label="I have planned shoots"
-              description="We'll work around your existing content calendar"
+              description="We'll create our content plan around your scheduled shoots"
               selected={data.footageOption === 'planned'}
               onClick={() => onChange('footageOption', 'planned')}
             />
@@ -809,7 +831,7 @@
                 borderRadius: 14, outline: 'none', appearance: 'none', cursor: 'pointer',
                 boxShadow: selectFocused ? `0 0 0 3px ${accentLight}` : 'none',
                 transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "'Nunito Sans', sans-serif",
               }}
             >
               {quarters.map(q => <option key={q} value={q}>{q}</option>)}
@@ -897,6 +919,7 @@
 
     const [formData, setFormData] = useState({
       monthlyNotes:             {},
+      quarterThemes:            '',
       contentReadyNow:          null,
       contentThroughoutQuarter: '',
       footageOption:            null,
@@ -996,6 +1019,7 @@
           formData.footageOption === 'guided'  ? 'DSH guides footage' :
           formData.footageOption === 'planned' ? 'Client has planned shoots' :
           formData.footageOption === 'both'    ? 'Both — DSH direction + planned shoots' : '',
+        quarterThemes: formData.quarterThemes,
         shootEta:   formData.shootEta,
         finalNotes: formData.finalNotes,
       };
@@ -1028,7 +1052,7 @@
         justifyContent: 'center',
         padding: 'clamp(32px, 6vw, 72px) clamp(16px, 4vw, 32px)',
       }}>
-        <div style={{ width: '100%', maxWidth: 580 }}>
+        <div style={{ width: '100%', maxWidth: 660 }}>
 
           {/* Top bar */}
           <div style={{
@@ -1076,6 +1100,8 @@
                     months={months}
                     monthlyNotes={formData.monthlyNotes}
                     onChangeMonth={updateMonth}
+                    quarterThemes={formData.quarterThemes}
+                    onChangeThemes={val => updateField('quarterThemes', val)}
                     onNext={goNext}
                   />
                 )}
