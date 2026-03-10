@@ -60,6 +60,7 @@
     teamCC:           '',
     googleFolderLink: 'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
     quarter:          'Q2 2025',
+    platform:         'google',
     appsScriptUrl:    'https://script.google.com/macros/s/AKfycbzUzuijM4N8UY3vmYLUCBH7mxW_HCCQpY6wBDEKI6oGfT_PnA6tjnLks27ttujaQjQ0TQ/exec',
   };
 
@@ -85,6 +86,7 @@
       teamCC:           get('teamCC'),
       googleFolderLink: get('googleFolderLink'),
       quarter:          get('quarter'),
+      platform:         get('platform'),
       appsScriptUrl:    get('appsScriptUrl'),
     };
   }
@@ -406,8 +408,55 @@
   /* ============================================================
      GOOGLE FOLDER CARD
   ============================================================ */
-  function FolderCard({ link }) {
+  function FolderCard({ link, platform }) {
     const [hovered, setHovered] = useState(false);
+
+    const icon = platform === 'dropbox' ? (
+      /* Dropbox blue box mark */
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+        <path fill="#0061FF" d="M6 2L0 6l6 4 6-4L6 2zm12 0l-6 4 6 4 6-4-6-4zM0 14l6 4 6-4-6-4-6 4zm18-4l-6 4 6 4 6-4-6-4zM6 19l6 4 6-4-6-4-6 4z"/>
+      </svg>
+    ) : platform === 'google' ? (
+      /* Google Drive triangle mark */
+      <svg width="26" height="22" viewBox="0 0 256 222" style={{ flexShrink: 0 }}>
+        <path fill="#0066DA" d="M174.4 0H81.6L0 144h81.6z"/>
+        <path fill="#00AC47" d="M256 144L174.4 0l-40.8 72L214.6 216z"/>
+        <path fill="#EA4335" d="M40.8 144L0 144 81.6 216h92.8l40.8-72z"/>
+      </svg>
+    ) : (
+      /* Generic cloud upload */
+      <svg width="26" height="22" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+        <path d="M12 16V10m0 0l-3 3m3-3l3 3" stroke={textMid} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M6.5 17A4.5 4.5 0 0 1 5 8.5a6 6 0 0 1 11.83-1A4 4 0 0 1 18 15.5" stroke={textMid} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+
+    const body = platform === 'google' ? (
+      <a
+        href={link}
+        target="_blank"
+        rel="noopener noreferrer"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          fontSize: 12,
+          color: hovered ? textDark : accent,
+          textDecoration: 'none',
+          borderBottom: `1px solid ${hovered ? textDark : accentMid}`,
+          transition: 'color 0.2s ease, border-color 0.2s ease',
+          paddingBottom: 1,
+        }}
+      >
+        Open Google Drive folder →
+      </a>
+    ) : (
+      <p style={{ fontSize: 12, color: textMid, margin: 0, lineHeight: 1.55 }}>
+        {platform === 'dropbox'
+          ? 'Please share your Dropbox folder with the DSH team'
+          : 'Please share your files with the DSH team'}
+      </p>
+    );
+
     return (
       <div style={{
         marginTop: 14,
@@ -420,33 +469,12 @@
         gap: 14,
         animation: 'fadeIn 0.3s ease',
       }}>
-        {/* Google Drive colours */}
-        <svg width="26" height="22" viewBox="0 0 256 222" style={{ flexShrink: 0 }}>
-          <path fill="#0066DA" d="M174.4 0H81.6L0 144h81.6z"/>
-          <path fill="#00AC47" d="M256 144L174.4 0l-40.8 72L214.6 216z"/>
-          <path fill="#EA4335" d="M40.8 144L0 144 81.6 216h92.8l40.8-72z"/>
-        </svg>
+        {icon}
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: textDark, marginBottom: 4 }}>
             Upload your content here
           </p>
-          <a
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer"
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            style={{
-              fontSize: 12,
-              color: hovered ? textDark : accent,
-              textDecoration: 'none',
-              borderBottom: `1px solid ${hovered ? textDark : accentMid}`,
-              transition: 'color 0.2s ease, border-color 0.2s ease',
-              paddingBottom: 1,
-            }}
-          >
-            Open Google Drive folder →
-          </a>
+          {body}
         </div>
       </div>
     );
@@ -583,7 +611,7 @@
   /* ============================================================
      STEP 2 — Let's talk content
   ============================================================ */
-  function Step2({ data, onChange, onNext, onBack, googleFolderLink }) {
+  function Step2({ data, onChange, onNext, onBack, googleFolderLink, platform }) {
     return (
       <div>
         <StepLabel step={2} total={3} />
@@ -598,8 +626,8 @@
             value={data.contentReadyNow}
             onChange={v => onChange('contentReadyNow', v)}
           />
-          {data.contentReadyNow === true && googleFolderLink && (
-            <FolderCard link={googleFolderLink} />
+          {data.contentReadyNow === true && (platform !== 'google' || googleFolderLink) && (
+            <FolderCard link={googleFolderLink} platform={platform} />
           )}
         </div>
 
@@ -765,6 +793,7 @@
       clientName:       '',
       googleFolderLink: '',
       quarter:          `Q2 ${yr}`,
+      platform:         'google',
     });
     const [copied,        setCopied]        = useState(false);
     const [selectFocused, setSelectFocused] = useState(false);
@@ -852,16 +881,46 @@
           </div>
         </Field>
 
-        <Field
-          label="Google Drive folder link ✦"
-          hint="This is where the client will be invited to upload content when they say they have content ready."
-        >
-          <StyledInput
-            value={f.googleFolderLink}
-            onChange={v => update('googleFolderLink', v)}
-            placeholder="https://drive.google.com/drive/folders/…"
-          />
+        <Field label="File storage platform ✦">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[['google', 'Google Drive'], ['dropbox', 'Dropbox'], ['other', 'Other']].map(([val, label]) => {
+              const active = f.platform === val;
+              return (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => update('platform', val)}
+                  style={{
+                    padding: '9px 20px',
+                    borderRadius: 99,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    border: `1.5px solid ${active ? accent : borderCol}`,
+                    backgroundColor: active ? accent : bgWhite,
+                    color: active ? '#fff' : textMid,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </Field>
+
+        {f.platform === 'google' && (
+          <Field
+            label="Google Drive folder link ✦"
+            hint="This is where the client will be invited to upload content when they say they have content ready."
+          >
+            <StyledInput
+              value={f.googleFolderLink}
+              onChange={v => update('googleFolderLink', v)}
+              placeholder="https://drive.google.com/drive/folders/…"
+            />
+          </Field>
+        )}
 
         {/* Divider */}
         <div style={{ height: 1, backgroundColor: borderCol, margin: '8px 0 24px' }} />
@@ -1117,6 +1176,7 @@
                     onNext={goNext}
                     onBack={goBack}
                     googleFolderLink={config.googleFolderLink}
+                    platform={config.platform}
                   />
                 )}
                 {visible === 2 && (
