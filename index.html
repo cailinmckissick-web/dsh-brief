@@ -61,6 +61,7 @@
     googleFolderLink: 'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
     quarter:          'Q2 2025',
     platform:         'google',
+    runsAds:          '',
     appsScriptUrl:    'https://script.google.com/macros/s/AKfycbzUzuijM4N8UY3vmYLUCBH7mxW_HCCQpY6wBDEKI6oGfT_PnA6tjnLks27ttujaQjQ0TQ/exec',
   };
 
@@ -87,6 +88,7 @@
       googleFolderLink: get('googleFolderLink'),
       quarter:          get('quarter'),
       platform:         get('platform'),
+      runsAds:          get('runsAds') === 'true',
       appsScriptUrl:    get('appsScriptUrl'),
     };
   }
@@ -542,7 +544,8 @@
           lineHeight: 1.08,
           marginBottom: 36,
         }}>
-          Hey {clientName || 'there'},<br />let's get planning.
+          <span style={{display:'block'}}>Hey {clientName || 'there'},</span>
+          <span style={{display:'block'}}>let's get planning.</span>
         </h1>
         <div style={{ maxWidth: 540 }}>
           <Body>
@@ -559,7 +562,7 @@
   /* ============================================================
      STEP 1 — What's happening this quarter?
   ============================================================ */
-  function Step1({ months, monthlyNotes, onChangeMonth, quarterThemes, onChangeThemes, onNext }) {
+  function Step1({ months, monthlyNotes, onChangeMonth, quarterThemes, onChangeThemes, runsAds, adsPriority, onChangeAds, onNext }) {
     return (
       <div>
         <StepLabel step={1} total={3} />
@@ -587,19 +590,35 @@
 
         <div style={{ marginBottom: 32 }}>
           <p style={{ fontSize: 14, fontWeight: 500, color: textDark, marginBottom: 6 }}>
-            Any themes or focus areas for the quarter?
+            Any industry themes or trends we should know about?
           </p>
           <p style={{ fontSize: 13, color: textMid, marginBottom: 12, lineHeight: 1.6 }}>
-            Think seasonal angles, recurring messages, or treatments/services you want front of mind.
-            (e.g. winter = hydration &amp; skin barrier, spring = glow-up &amp; renewal)
+            Think niche-specific moments, seasonal hooks, or topics your audience cares about that we might not be plugged into — a big industry event, a trend in your space, a product category having a moment.
           </p>
           <StyledTextArea
             value={quarterThemes}
             onChange={onChangeThemes}
-            placeholder="e.g. Q2 vibe — spring refresh, new arrivals, post-winter skin reset…"
+            placeholder="e.g. Spring reset is huge in wellness right now, our studio is launching a reformer challenge in May…"
             minHeight={90}
           />
         </div>
+
+        {runsAds && (
+          <div style={{ marginBottom: 32 }}>
+            <p style={{ fontSize: 14, fontWeight: 500, color: textDark, marginBottom: 6 }}>
+              What do you want to prioritize for ads this quarter?
+            </p>
+            <p style={{ fontSize: 13, color: textMid, marginBottom: 12, lineHeight: 1.6 }}>
+              Based on what's coming up, let us know what you'd like to push. Please include links to any landing pages if available.
+            </p>
+            <StyledTextArea
+              value={adsPriority}
+              onChange={onChangeAds}
+              placeholder="e.g. Driving sign-ups for our May reformer challenge — landing page: example.com/challenge"
+              minHeight={110}
+            />
+          </div>
+        )}
 
         <CTAButton onClick={onNext}>
           Looking good →
@@ -642,25 +661,25 @@
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
             <OptionCard
               label="Tell me what you need"
-              description="DSH will guide you on exactly what to capture and when"
+              description="We'll send you a shot list of what to capture and when"
               selected={data.footageOption === 'guided'}
               onClick={() => onChange('footageOption', 'guided')}
             />
             <OptionCard
               label="I have planned shoots"
-              description="We'll create our content plan around your scheduled shoots"
+              description="We'll build the plan around your existing shoot schedule"
               selected={data.footageOption === 'planned'}
               onClick={() => onChange('footageOption', 'planned')}
             />
             <OptionCard
               label="Both"
-              description="Mix of DSH direction and shoots we already have planned"
+              description="Shot list guidance plus your planned shoots"
               selected={data.footageOption === 'both'}
               onClick={() => onChange('footageOption', 'both')}
             />
             <OptionCard
               label="I won't have new content"
-              description="We'll build the plan around existing footage, stock, or AI-generated content"
+              description="We'll work with existing footage, stock, or AI"
               selected={data.footageOption === 'existing'}
               onClick={() => onChange('footageOption', 'existing')}
             />
@@ -800,6 +819,7 @@
       googleFolderLink: '',
       quarter:          `Q2 ${yr}`,
       platform:         'google',
+      runsAds:          '',
     });
     const [copied,        setCopied]        = useState(false);
     const [selectFocused, setSelectFocused] = useState(false);
@@ -928,6 +948,23 @@
           </Field>
         )}
 
+        <div style={{ marginBottom: 22 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={f.runsAds === 'true'}
+              onChange={e => update('runsAds', e.target.checked ? 'true' : '')}
+              style={{ width: 16, height: 16, accentColor: accent, cursor: 'pointer', flexShrink: 0 }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 500, color: textDark }}>
+              This client runs ads
+            </span>
+          </label>
+          <p style={{ fontSize: 12, color: textLight, marginTop: 6, marginLeft: 26, lineHeight: 1.55 }}>
+            Adds an ads priorities question to their Step 1
+          </p>
+        </div>
+
         {/* Divider */}
         <div style={{ height: 1, backgroundColor: borderCol, margin: '8px 0 24px' }} />
 
@@ -990,6 +1027,7 @@
     const [formData, setFormData] = useState({
       monthlyNotes:             {},
       quarterThemes:            '',
+      adsPriority:              '',
       contentReadyNow:          null,
       contentThroughoutQuarter: '',
       footageOption:            null,
@@ -1035,6 +1073,7 @@
       const newDir = nextStep > step ? 1 : -1;
       setDir(newDir);
       setPhase('exiting');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => {
         setStep(nextStep);
         setVisible(nextStep);
@@ -1091,6 +1130,7 @@
           formData.footageOption === 'both'     ? 'Both — DSH direction + planned shoots' :
           formData.footageOption === 'existing' ? 'No new content — use existing/stock/AI' : '',
         quarterThemes: formData.quarterThemes,
+        adsPriority:   formData.adsPriority,
         shootEta:   formData.shootEta,
         finalNotes: formData.finalNotes,
       };
@@ -1173,6 +1213,9 @@
                     onChangeMonth={updateMonth}
                     quarterThemes={formData.quarterThemes}
                     onChangeThemes={val => updateField('quarterThemes', val)}
+                    runsAds={config.runsAds}
+                    adsPriority={formData.adsPriority}
+                    onChangeAds={val => updateField('adsPriority', val)}
                     onNext={goNext}
                   />
                 )}
